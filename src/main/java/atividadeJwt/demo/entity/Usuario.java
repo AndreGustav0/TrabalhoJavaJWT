@@ -5,28 +5,15 @@ import lombok.*;
 
 @Entity
 @Table(name = "usuarios")
-@Data
-@NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@NoArgsConstructor
+@Getter
+@Setter
 public class Usuario {
-
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String id;
     private String nome;
-
-    @Column(unique = true)
     private String email;
-
     private String senha;
-
-    @Enumerated(EnumType.STRING)
-    private Role role;
-
-    public enum Role {
-        USER,
-        ADMIN
-    }
 }
