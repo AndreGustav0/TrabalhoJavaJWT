@@ -1,4 +1,6 @@
 package atividadeJwt.demo.dto;
 
-public record RegisterRequestDTO(String nome, String email, String senha) {
+import atividadeJwt.demo.entity.UsuarioRole;
+
+public record RegisterRequestDTO(String nome, String email, String senha, UsuarioRole role) {
 }

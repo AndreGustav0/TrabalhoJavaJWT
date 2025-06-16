@@ -9,10 +9,7 @@ import atividadeJwt.demo.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
 
@@ -24,30 +21,40 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
 
-    @PostMapping("/login")
-    public ResponseEntity login(@RequestBody LoginRequestDTO body){
-        Usuario usuario = this.repository.findByEmail(body.email()).orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
-        if(passwordEncoder.matches(body.senha(), usuario.getSenha())){
-            String token = this.tokenService.geradorToken(new Usuario());
-            return ResponseEntity.ok(new ResponseDTO(usuario.getNome(), token));
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody RegisterRequestDTO body) {
+        Optional<Usuario> usuarioExistente = repository.findByEmail(body.email());
+
+        if (usuarioExistente.isPresent()) {
+            return ResponseEntity.badRequest().body("Usuário já existe.");
         }
-        return ResponseEntity.badRequest().build();
+
+        Usuario novoUsuario = new Usuario();
+        novoUsuario.setNome(body.nome());
+        novoUsuario.setEmail(body.email());
+        novoUsuario.setSenha(passwordEncoder.encode(body.senha()));
+        novoUsuario.setRole(body.role());
+
+        repository.save(novoUsuario);
+
+        String token = tokenService.geradorToken(novoUsuario);
+        return ResponseEntity.ok(new ResponseDTO(novoUsuario.getNome(), token));
     }
 
-    @PostMapping("/register")
-    public ResponseEntity register(@RequestBody RegisterRequestDTO body){
-        Optional<Usuario> usuario = this.repository.findByEmail(body.email());
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequestDTO body) {
+        Optional<Usuario> usuarioOptional = repository.findByEmail(body.email());
 
-        if(usuario.isEmpty()){
-            Usuario novoUsuario = new Usuario();
-            novoUsuario.setSenha(passwordEncoder.encode(body.senha()));
-            novoUsuario.setEmail(body.email());
-            novoUsuario.setNome(body.nome());
-            this.repository.save(novoUsuario);
-
-            String token = this.tokenService.geradorToken(novoUsuario);
-            return ResponseEntity.ok(new ResponseDTO(novoUsuario.getNome(), token));
+        if (usuarioOptional.isEmpty()) {
+            return ResponseEntity.status(401).body("Credenciais inválidas.");
         }
-        return ResponseEntity.badRequest().build();
+
+        Usuario usuario = usuarioOptional.get();
+        if (!passwordEncoder.matches(body.senha(), usuario.getSenha())) {
+            return ResponseEntity.status(401).body("Credenciais inválidas.");
+        }
+
+        String token = tokenService.geradorToken(usuario);
+        return ResponseEntity.ok(new ResponseDTO(usuario.getNome(), token));
     }
 }
